@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway of the Future of Finance</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        header {
+            background-color: #e6e6e6;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            width: 40px;
+            height: 40px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+        }
+        nav {
+            display: flex;
+            align-items: center;
+        }
+        nav a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: black;
+        }
+        .mining-box {
+            width: 350px;
+            background-color: #0000FF;
+            color: white;
+            margin: 0 10px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8em;
+            padding: 20px;
+            overflow: hidden;
+            box-sizing: border-box;
+            opacity: 0.5;
+            pointer-events: none;
+            filter: blur(3px);
+            transition: all 0.3s ease;
+        }
+        .mining-box.active {
+            opacity: 1;
+            pointer-events: auto;
+            filter: blur(0);
+        }
+        .mining-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .hash-display {
+            font-size: 0.7em;
+            color: #666;
+            margin-top: 5px;
+            height: 1em;
+        }
+        .auth-btn {
+            background-color: #FFA500;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            text-decoration: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        main {
+            flex-grow: 1;
+            background-color: #2F4F4F;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .steps {
+            display: flex;
+            flex-direction: column;
+        }
+        .step {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .step::before {
+            content: '';
+            width: 2px;
+            height: 30px;
+            background-color: white;
+            margin-right: 10px;
+        }
+        .tagline {
+            background-image: linear-gradient(to right, #00CED1, #32CD32);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 300px;
+        }
+        #authModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #authModal.active {
+            display: block;
+        }
+        #hiddenPassphrase {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    
+        <div class="container">
+            <header>
+                <div class="logo"></div>
+                <nav>
+                    <a href="#">Innovate</a>
+                    <a href="#">Launch</a>
+                    <div class="mining-box" id="miningBox">
+                        <span>Balance: <span id="balance">0.0</span> coins</span>
+                        <span>Mining Rate: 0.1 coin/sec</span>
+                        <button class="mining-button">Start Mining</button>
+                        <div class="hash-display" id="hashDisplay"></div>
+                    </div>
+                    <a href="#">Function</a>
+                    <a href="#">Profile</a>
+                </nav>
+                <div>
+                    <a href="#" class="auth-btn" id="loginBtn">Login</a>
+                    <a href="#" class="auth-btn" id="logoutBtn" style="display: none;">Logout</a>
+                </div>
+            </header>
+            <main>
+                <div class="steps">
+                    <div class="step">Mining</div>
+                    <div class="step">Wallet KYC</div>
+                    <div class="step">Enable Mainnet</div>
+                    <div class="step">Exchange BUY/SELL</div>
+                </div>
+                <div class="tagline">
+                    <h2>Gateway of the future of finance</h2>
+                    <h3>The new timeline of Money</h3>
+                </div>
+            </main>
+        </div>
+    
+        <!-- Auth Modal -->
+        <div id="authModal">
+            <h3>Login</h3>
+            <input type="text" id="passphraseInput" placeholder="Enter passphrase" />
+            <button id="authActionBtn">Submit</button>
+            <p id="authMessage"></p>
+        </div>
+    
+    <script>
+        const miningButton = document.querySelector('.mining-button');
+        const balanceDisplay = document.getElementById('balance');
+        const hashDisplay = document.getElementById('hashDisplay');
+        const miningBox = document.getElementById('miningBox');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const authModal = document.getElementById('authModal');
+        const passphraseInput = document.getElementById('passphraseInput');
+        const authActionBtn = document.getElementById('authActionBtn');
+        const authMessage = document.getElementById('authMessage');
+
+        let isMining = false;
+        let balance = 0;
+        let miningInterval;
+        let hashInterval;
+        const FIXED_PASSPHRASE = 'Brassetz1';
+
+        function checkLoginStatus() {
+            const savedLogin = localStorage.getItem('isLoggedIn');
+            const savedBalance = localStorage.getItem('balance');
+            if (savedLogin === 'true') {
+                if (savedBalance !== null) {
+                    balance = parseFloat(savedBalance);
+                } else {
+                    balance = 0;
+                }
+                balanceDisplay.textContent = balance.toFixed(1);
+                enableMiningUI();
+            }
+        }
+
+        // Check login status on page load
+        checkLoginStatus();
+
+        function updateBalance() {
+            balance += 0.1;
+            balanceDisplay.textContent = balance.toFixed(1);
+            localStorage.setItem('balance', balance.toString());
+        }
+
+        function generateHash() {
+            return [...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+        }
+
+        function updateHash() {
+            hashDisplay.textContent = `Trying: ${generateHash()}`;
+        }
+
+        function enableMiningUI() {
+            miningBox.classList.add('active');
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            localStorage.setItem('isLoggedIn', 'true');
+        }
+
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            authModal.classList.add('active');
+            authMessage.textContent = '';
+        });
+
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.setItem('isLoggedIn', 'false');
+            miningBox.classList.remove('active');
+            loginBtn.style.display = 'inline-block';
+            logoutBtn.style.display = 'none';
+            if (isMining) {
+                clearInterval(miningInterval);
+                clearInterval(hashInterval);
+                miningButton.textContent = 'Start Mining';
+                isMining = false;
+            }
+            balanceDisplay.textContent = '0.0';
+        });
+
+        authActionBtn.addEventListener('click', () => {
+            const enteredPassphrase = passphraseInput.value;
+            if (enteredPassphrase === FIXED_PASSPHRASE) {
+                authModal.classList.remove('active');
+                enableMiningUI();
+                const savedBalance = localStorage.getItem('balance');
+                if (savedBalance !== null) {
+                    balance = parseFloat(savedBalance);
+                } else {
+                    balance = 0;
+                }
+                balanceDisplay.textContent = balance.toFixed(1);
+            } else {
+                authMessage.textContent = 'Invalid passphrase. Please try again.';
+            }
+        });
+
+        miningButton.addEventListener('click', () => {
+            if (localStorage.getItem('isLoggedIn') !== 'true') {
+                alert('Please login to start mining.');
+                return;
+            }
+
+            if (isMining) {
+                clearInterval(miningInterval);
+                clearInterval(hashInterval);
+                miningButton.textContent = 'Start Mining';
+                isMining = false;
+            } else {
+                miningInterval = setInterval(updateBalance, 1000);
+                hashInterval = setInterval(updateHash, 100);
+                miningButton.textContent = 'Stop Mining';
+                isMining = true;
+            }
+        });
+    </script>
+</body>
+</html>
